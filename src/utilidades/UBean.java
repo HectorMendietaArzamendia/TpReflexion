@@ -22,7 +22,7 @@ public class UBean {
 		for (Method m : methods) {
 			String metodo = m.getName().toLowerCase();
 			if (metodo.startsWith("set")) {
-				if (metodo.contains(att)) {
+				if (metodo.contains(att.toLowerCase())) {
 					try {
 						m.invoke(o, valor);
 					} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
@@ -41,7 +41,7 @@ public class UBean {
 		for (Method m : methods) {
 			String metodo = m.getName().toLowerCase();
 			if (metodo.startsWith("get")) {
-				if (metodo.contains(att)) {
+				if (metodo.contains(att.toLowerCase())) {
 					try {
 						res = m.invoke(o, valor);
 					} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
