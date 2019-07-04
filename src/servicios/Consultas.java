@@ -33,7 +33,7 @@ public class Consultas {
 			for (Field f : UBean.obtenerAtributos(o)) {
 				if (f.getAnnotation(Columna.class) != null) {
 					if (f.getAnnotation(Id.class) != null) {
-						idNombre = f.getAnnotation(Columna.class).nombre();
+						idNombre = f.getName();
 					}
 					else {
 						atributos.add(f);
@@ -75,26 +75,27 @@ public class Consultas {
 			String tabla = t.nombre();
 			String id = "";
 			StringBuilder columnasValores = new StringBuilder();
+			List<Field> atributos = new ArrayList<>();
 			
 			for (Field f : UBean.obtenerAtributos(o)) {
 				if (f.getAnnotation(Columna.class) != null) {
-					String columna = f.getAnnotation(Columna.class).nombre();
-					columnasValores.append(", " + columna + "=");
-					if (UBean.ejecutarGet(o, columna).getClass().equals(String.class)) {
-						columnasValores.append("'" + UBean.ejecutarGet(o, columna) + "'");
+					if (f.getAnnotation(Id.class) != null) {
+						id = f.getAnnotation(Columna.class).nombre();
 					}
-					else { columnasValores.append(UBean.ejecutarGet(o, columna)); }
-				}
-				if (f.getAnnotation(Id.class) != null) {
-					id = f.getName();
+					else {
+						atributos.add(f);
+						columnasValores.append(", " + f.getAnnotation(Columna.class).nombre() + "=?");
+					}
 				}
 			}
 			columnasValores = columnasValores.replace(0, 2, "");
 			String query = "UPDATE " + tabla + " SET " + columnasValores + " WHERE " + id + "=" + UBean.ejecutarGet(o, id);
 			try {
-					PreparedStatement ps = conexion.prepareStatement(query);					
-					ps.executeUpdate();
-					
+					PreparedStatement ps = conexion.prepareStatement(query);
+					for (int i = 0; i < atributos.size(); i++) {
+						ps.setObject(i+1, UBean.ejecutarGet(o, atributos.get(i).getAnnotation(Columna.class).nombre()));
+					}
+					ps.executeUpdate();					
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
@@ -108,25 +109,21 @@ public class Consultas {
 			Tabla t = (Tabla) c.getAnnotation(Tabla.class);
 			String tabla = t.nombre();
 			StringBuilder columnasValores = new StringBuilder();
+			List<Field> atributos = new ArrayList<>();
 			
 			for (Field f : UBean.obtenerAtributos(o)) {
 				if (f.getAnnotation(Columna.class) != null) {
-					String columna = f.getAnnotation(Columna.class).nombre();
-					columnasValores.append(" AND " + columna + "=");
-					if (UBean.ejecutarGet(o, columna).getClass().equals(String.class)) {
-						columnasValores.append("'" + UBean.ejecutarGet(o, columna) + "'");
-					}
-					else { columnasValores.append(UBean.ejecutarGet(o, columna)); }
-				}
-				if (f.getAnnotation(Id.class) != null) {
-					String id = f.getName();
-					columnasValores.append(" AND " + id + "=" + UBean.ejecutarGet(o, id));
+					atributos.add(f);
+					columnasValores.append(" AND " + f.getAnnotation(Columna.class).nombre() + "=?");
 				}
 			}
 			columnasValores = columnasValores.replace(0, 5, "");
 			String query = "DELETE FROM " + tabla + " WHERE " + columnasValores;
 			try {
-					PreparedStatement ps = conexion.prepareStatement(query);					
+					PreparedStatement ps = conexion.prepareStatement(query);
+					for (int i = 0; i < atributos.size(); i++) {
+						ps.setObject(i+1, UBean.ejecutarGet(o, atributos.get(i).getAnnotation(Columna.class).nombre()));
+					}
 					ps.execute();
 					
 			} catch (SQLException e) {
