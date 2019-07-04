@@ -8,6 +8,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
 
 import anotaciones.Columna;
 import anotaciones.Id;
@@ -24,41 +25,39 @@ public class Consultas {
 			Tabla t = (Tabla) c.getAnnotation(Tabla.class);
 			String tabla = t.nombre();
 			String idNombre = "";
-			int id;
+			Object id;
 			String columnas = "";
-			StringBuilder valores = new StringBuilder();
+			String valores = "";			
+			List<Field> atributos = new ArrayList<>();
 			
 			for (Field f : UBean.obtenerAtributos(o)) {
 				if (f.getAnnotation(Columna.class) != null) {
-					String columna = f.getAnnotation(Columna.class).nombre();
-					columnas = columnas.concat(", " + columna);					
-					if (UBean.ejecutarGet(o, columna).getClass().equals(String.class)) {
-						valores.append(", '");
-						valores.append(UBean.ejecutarGet(o, columna));
-						valores.append("'");
+					if (f.getAnnotation(Id.class) != null) {
+						idNombre = f.getAnnotation(Columna.class).nombre();
 					}
 					else {
-						valores.append(", ");
-						valores.append(UBean.ejecutarGet(o, columna));
+						atributos.add(f);
+						columnas = columnas.concat(", " + f.getAnnotation(Columna.class).nombre());					
+						valores = valores.concat(", ?");
 					}
-				}
-				if (f.getAnnotation(Id.class) != null) {
-					idNombre = f.getName();
 				}
 			}
 			columnas = columnas.replaceFirst(", ", "");
-			valores = valores.replace(0, 2, "");
+			valores = valores.replaceFirst(", ", "");
 			String query = "INSERT INTO " + tabla + " (" + columnas + ") VALUES (" + valores + ")";
 			try {
 					synchronized(conexion) {
 						conexion.setAutoCommit(false);
 						PreparedStatement ps = conexion.prepareStatement(query);
+						for (int i = 0; i < atributos.size(); i++) {
+							ps.setObject(i+1, UBean.ejecutarGet(o, atributos.get(i).getAnnotation(Columna.class).nombre()));
+						}
 						ps.execute();
 						PreparedStatement ps2 = conexion.prepareStatement("SELECT MAX(" + idNombre + ") AS id from " + tabla);
 						ResultSet rs = ps2.executeQuery();
 						conexion.commit();
 						rs.next();
-						id = rs.getInt("id");
+						id = rs.getObject("id");
 						UBean.ejecutarSet(o, idNombre, id);
 					}
 			} catch (SQLException e) {
