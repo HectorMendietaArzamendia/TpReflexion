@@ -50,7 +50,7 @@ public class Consultas {
 						conexion.setAutoCommit(false);
 						PreparedStatement ps = conexion.prepareStatement(query);
 						for (int i = 0; i < atributos.size(); i++) {
-							ps.setObject(i+1, UBean.ejecutarGet(o, atributos.get(i).getAnnotation(Columna.class).nombre()));
+							ps.setObject(i+1, UBean.ejecutarGet(o, atributos.get(i).getName()));
 						}
 						ps.execute();
 						PreparedStatement ps2 = conexion.prepareStatement("SELECT MAX(" + idNombre + ") AS id from " + tabla);
@@ -93,7 +93,7 @@ public class Consultas {
 			try {
 					PreparedStatement ps = conexion.prepareStatement(query);
 					for (int i = 0; i < atributos.size(); i++) {
-						ps.setObject(i+1, UBean.ejecutarGet(o, atributos.get(i).getAnnotation(Columna.class).nombre()));
+						ps.setObject(i+1, UBean.ejecutarGet(o, atributos.get(i).getName()));
 					}
 					ps.executeUpdate();					
 			} catch (SQLException e) {
@@ -122,7 +122,7 @@ public class Consultas {
 			try {
 					PreparedStatement ps = conexion.prepareStatement(query);
 					for (int i = 0; i < atributos.size(); i++) {
-						ps.setObject(i+1, UBean.ejecutarGet(o, atributos.get(i).getAnnotation(Columna.class).nombre()));
+						ps.setObject(i+1, UBean.ejecutarGet(o, atributos.get(i).getName()));
 					}
 					ps.execute();
 					
@@ -139,14 +139,16 @@ public class Consultas {
 			Tabla t = (Tabla) c.getAnnotation(Tabla.class);
 			String tabla = t.nombre();
 			String idNombre = "";
-			ArrayList<String> columnas = new ArrayList();
+			ArrayList<String> atributos = new ArrayList<>();
 			
-			for (Field f : c.getDeclaredFields()) {
-				if (f.getAnnotation(Id.class) != null) {
-					idNombre = f.getName();
-				}
+			for (Field f : c.getDeclaredFields()) {				
 				if (f.getAnnotation(Columna.class) != null) {
-					columnas.add(f.getAnnotation(Columna.class).nombre());
+					if (f.getAnnotation(Id.class) != null) {
+						idNombre = f.getAnnotation(Columna.class).nombre();
+					}
+					else {
+						atributos.add(f.getName());
+					}
 				}
 			}
 			
@@ -166,8 +168,8 @@ public class Consultas {
 					PreparedStatement ps = conexion.prepareStatement(query);					
 					ResultSet rs = ps.executeQuery();
 					while (rs.next()) {
-						for (String columna : columnas) {
-							UBean.ejecutarSet(obj, columna, rs.getObject(columna));
+						for (String atr : atributos) {
+							UBean.ejecutarSet(obj, atr, rs.getObject(atr));
 						}
 					}					
 			} catch (SQLException e) {
